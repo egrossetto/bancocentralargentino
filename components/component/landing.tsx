@@ -16,7 +16,9 @@ import {
 } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { DatosVariables } from '@/app/types';
-import api from '@/app/api';
+import { estadisticas } from '@/app/actions';
+import { Card } from '../ui/card';
+import { DataCard } from './dataCard';
 
 type Props = {
 	datosVariables: DatosVariables[];
@@ -27,19 +29,34 @@ export function Landing({ datosVariables }: Props) {
 	const [selectedVariable, setSelectedVariable] = useState('');
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
+	const [data, setData] = useState<any>(null);
+	const [error, setError] = useState<any>(null);
 
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault();
-		console.log('Submitting', selectedVariable, startDate, endDate);
+		setData(null);
+		setError(null);
 		let idVariable = datosVariables.find(
 			(dato) => dato.descripcion === selectedVariable
 		)?.idVariable;
 		if (!idVariable) {
 			return;
 		}
-		const response = await api.estadisticas(idVariable, startDate, endDate);
-		console.log(response); // Process the response data as needed
+
+		try {
+			const response = await estadisticas(idVariable, startDate, endDate);
+			if (response.errorMessage) {
+				console.error(response);
+				setError(response.errorMessage);
+			} else {
+				console.log(response.results);
+				setData(response.results);
+			}
+		} catch (error) {
+			setError(error);
+		}
 	};
+
 	return (
 		<main className="flex flex-col items-center justify-center w-full h-full min-h-[100dvh] bg-gray-100 dark:bg-gray-900 px-4 md:px-6">
 			<div className="max-w-3xl space-y-4 text-center">
@@ -164,7 +181,20 @@ export function Landing({ datosVariables }: Props) {
 			</div>
 			<div className="w-1/2 max-w-xxl mt-8">
 				<div className="flex flex-col items-center justify-center">
-					Test
+					{error != null && (
+						<p className="text-red-500">
+							{'No hay datos para mostrar.'}
+						</p>
+					)}
+					{data != null && (
+						<div className="text-center">
+							<div className="text-2xl">
+								{data.map((dato: any) => (
+									<DataCard key={dato.fecha} data={dato} />
+								))}
+							</div>
+						</div>
+					)}
 				</div>
 			</div>
 		</main>
